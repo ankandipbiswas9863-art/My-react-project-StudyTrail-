@@ -74,11 +74,11 @@ const StudyTrailLanding = () => {
             </div>
 
             <div className="flex items-center gap-5">
-              <Link to="/Auth" className="hidden sm:block text-slate-500 dark:text-slate-300 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors">
+              <Link to="/Log" className="hidden sm:block text-slate-500 dark:text-slate-300 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors">
                 Log In
               </Link>
               <Link 
-    to="/auth" 
+    to="/log" 
     state={{ mode: 'register' }} 
     className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-2.5 rounded-full text-sm font-semibold hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2"
   >
@@ -107,7 +107,7 @@ const StudyTrailLanding = () => {
               
               <div className="flex flex-col sm:flex-row justify-center gap-4">
   <Link 
-    to="/auth" 
+    to="/log" 
     state={{ mode: 'register' }} 
     className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-4 rounded-full text-base font-semibold hover:scale-105 transition-all duration-300 shadow-xl shadow-indigo-500/10 flex items-center justify-center gap-2"
   >

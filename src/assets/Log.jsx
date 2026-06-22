@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // NEW: Added useNavigate
 import {
   Sun,
   Moon,
@@ -11,37 +11,41 @@ import {
   ArrowLeft
 } from "lucide-react";
 
+// NEW: Import Firebase Auth functions and your configured instance
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  updateProfile 
+} from "firebase/auth";
+import { auth } from "../assets/firebase"; // Make sure this path correctly points to your assets folder!
+
 export default function Auth() {
-  // 1. Read the state passed from Home.jsx
   const location = useLocation();
+  const navigate = useNavigate(); // NEW: Hook for redirecting after login/signup
   const initialMode = location.state?.mode || "login";
 
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [authMode, setAuthMode] = useState(initialMode);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
-  
-  // 2. State to trigger the smooth page-load animation
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // Trigger the animation shortly after the component mounts
-    requestAnimationFrame(() => setMounted(true));
-  }, []);
-
-  // Update mode if user navigates while already on the page
-  useEffect(() => {
-    if (location.state?.mode) {
-      setAuthMode(location.state.mode);
-      setErrors({});
-    }
-  }, [location.state]);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    requestAnimationFrame(() => setMounted(true));
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.mode) {
+      setAuthMode(location.state.mode);
+      setErrors({});
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     setFormData({
@@ -65,14 +69,55 @@ export default function Auth() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  // NEW: Converted to async function to handle Firebase calls
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        setFormData({ name: "", email: "", password: "" });
-      }, 4000);
+      try {
+        if (authMode === "register") {
+          // 1. Create the user
+          const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+          
+          // 2. Add the user's name to their Firebase Profile
+          await updateProfile(userCredential.user, {
+            displayName: formData.name
+          });
+          
+        } else {
+          // 3. Log the existing user in
+          await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        }
+
+        // 4. On Success: Trigger your UI animation
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setFormData({ name: "", email: "", password: "" });
+          // Redirect the user to their dashboard or home page after animation
+          navigate("/"); 
+        }, 3000); // Shortened slightly to 3s so the user isn't waiting too long
+
+      } catch (error) {
+        // NEW: Handle Firebase Errors and map them to your UI
+        const newErrors = {};
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            newErrors.email = "This email is already registered.";
+            break;
+          case 'auth/user-not-found':
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+            newErrors.password = "Invalid email or password.";
+            break;
+          case 'auth/too-many-requests':
+            newErrors.email = "Too many failed attempts. Try again later.";
+            break;
+          default:
+            newErrors.email = "Authentication failed. Please try again.";
+            console.error(error.message);
+        }
+        setErrors(newErrors);
+      }
     }
   };
 
@@ -93,7 +138,7 @@ export default function Auth() {
           )}
         </button>
 
-        {/* 3. Smooth Fade-in Wrapper for the Main Content */}
+        {/* Smooth Fade-in Wrapper for the Main Content */}
         <div className={`w-full max-w-5xl overflow-hidden rounded-4xl bg-white dark:bg-[#0A0A0A] shadow-2xl border border-slate-200 dark:border-white/5 flex flex-col md:flex-row relative z-10 min-h-150 transition-all duration-1000 ease-out transform-gpu ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-[0.98]'}`}>
 
           {/* Left Panel */}
@@ -109,7 +154,7 @@ export default function Auth() {
               <h1 className="text-2xl font-bold tracking-tight">StudyTrail</h1>
             </div>
 
-            {/* 4. Smooth Delayed Fade-in for the SVG Logo */}
+            {/* Smooth Delayed Fade-in for the SVG Logo */}
             <div className={`flex justify-center items-center flex-1 relative z-10 my-8 transition-all duration-1000 delay-300 ease-out transform-gpu ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
               <svg
                 viewBox="0 0 400 400"

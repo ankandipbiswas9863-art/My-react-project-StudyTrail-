@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom"; // NEW: Added useNavigate
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Sun,
   Moon,
@@ -11,17 +11,18 @@ import {
   ArrowLeft
 } from "lucide-react";
 
-// NEW: Import Firebase Auth functions and your configured instance
+// Firebase Auth & Firestore imports
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   updateProfile 
 } from "firebase/auth";
-import { auth } from "../assets/firebase"; // Make sure this path correctly points to your assets folder!
+import { doc, setDoc } from "firebase/firestore"; 
+import { auth, db } from "../assets/firebase"; // Ensure 'db' is exported from your firebase config
 
-export default function Auth() {
+export default function Log() {
   const location = useLocation();
-  const navigate = useNavigate(); // NEW: Hook for redirecting after login/signup
+  const navigate = useNavigate(); 
   const initialMode = location.state?.mode || "login";
 
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -69,36 +70,44 @@ export default function Auth() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // NEW: Converted to async function to handle Firebase calls
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
       try {
         if (authMode === "register") {
-          // 1. Create the user
+          // 1. Create the user in Firebase Auth
           const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+          const user = userCredential.user;
           
-          // 2. Add the user's name to their Firebase Profile
-          await updateProfile(userCredential.user, {
+          // 2. Add the user's name to their Firebase Auth Profile
+          await updateProfile(user, {
             displayName: formData.name
+          });
+
+          // 3. Save user data to Firestore using their UID as the document ID
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name: formData.name,
+            email: formData.email,
+            createdAt: new Date().toISOString()
           });
           
         } else {
-          // 3. Log the existing user in
+          // Log the existing user in
           await signInWithEmailAndPassword(auth, formData.email, formData.password);
         }
 
-        // 4. On Success: Trigger your UI animation
+        // On Success: Trigger UI animation
         setShowSuccess(true);
         setTimeout(() => {
           setShowSuccess(false);
           setFormData({ name: "", email: "", password: "" });
-          // Redirect the user to their dashboard or home page after animation
-          navigate("/"); 
-        }, 3000); // Shortened slightly to 3s so the user isn't waiting too long
+          // Redirect the user to the StudyTrail Home page
+          navigate("/Signed"); // Make sure this matches your Route path in App.jsx
+        }, 3000); 
 
       } catch (error) {
-        // NEW: Handle Firebase Errors and map them to your UI
+        // Handle Firebase Errors
         const newErrors = {};
         switch (error.code) {
           case 'auth/email-already-in-use':
@@ -114,7 +123,7 @@ export default function Auth() {
             break;
           default:
             newErrors.email = "Authentication failed. Please try again.";
-            console.error(error.message);
+            console.error("Auth error:", error.message);
         }
         setErrors(newErrors);
       }
@@ -138,12 +147,11 @@ export default function Auth() {
           )}
         </button>
 
-        {/* Smooth Fade-in Wrapper for the Main Content */}
+        {/* Smooth Fade-in Wrapper */}
         <div className={`w-full max-w-5xl overflow-hidden rounded-4xl bg-white dark:bg-[#0A0A0A] shadow-2xl border border-slate-200 dark:border-white/5 flex flex-col md:flex-row relative z-10 min-h-150 transition-all duration-1000 ease-out transform-gpu ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-[0.98]'}`}>
 
           {/* Left Panel */}
           <div className="hidden md:flex md:w-5/12 bg-linear-to-br from-indigo-600 via-violet-600 to-cyan-500 p-12 text-white flex-col justify-between relative overflow-hidden">
-            
             <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute top-10 -right-10 w-48 h-48 bg-cyan-300/20 rounded-full blur-2xl"></div>
 
@@ -154,12 +162,9 @@ export default function Auth() {
               <h1 className="text-2xl font-bold tracking-tight">StudyTrail</h1>
             </div>
 
-            {/* Smooth Delayed Fade-in for the SVG Logo */}
+            {/* SVG Logo */}
             <div className={`flex justify-center items-center flex-1 relative z-10 my-8 transition-all duration-1000 delay-300 ease-out transform-gpu ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-              <svg
-                viewBox="0 0 400 400"
-                className="w-full max-w-70 drop-shadow-2xl hover:scale-105 transition-transform duration-700"
-              >
+              <svg viewBox="0 0 400 400" className="w-full max-w-70 drop-shadow-2xl hover:scale-105 transition-transform duration-700">
                 <circle cx="200" cy="180" r="120" fill="url(#glow)" opacity="0.8" />
                 <defs>
                   <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
@@ -167,24 +172,17 @@ export default function Auth() {
                     <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                   </radialGradient>
                 </defs>
-
                 <g className="origin-[200px_180px] animate-[spin_20s_linear_infinite]">
                   <circle cx="200" cy="180" r="110" stroke="white" strokeWidth="1" strokeDasharray="5 5" opacity="0.4" />
                   <circle cx="200" cy="180" r="130" stroke="white" strokeWidth="1" strokeDasharray="2 8" opacity="0.2" />
                 </g>
-
                 <g transform="translate(112, 95) scale(7)">
                   <path d="M21.42 10.922a2 2 0 0 0-.019-3.838L12.83 4.1a2 2 0 0 0-1.66 0L2.6 7.08a2 2 0 0 0 0 3.832l8.57 3.698a2 2 0 0 0 1.66 0z" fill="white" />
                   <path d="M22 10v6" stroke="white" strokeWidth="2" strokeLinecap="round" />
                   <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
                 </g>
-
-                <text x="200" y="340" textAnchor="middle" fill="white" fontSize="22" fontWeight="800" letterSpacing="-0.5">
-                  Empowering Students
-                </text>
-                <text x="200" y="370" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="14" fontWeight="500" letterSpacing="4" className="uppercase">
-                  Worldwide
-                </text>
+                <text x="200" y="340" textAnchor="middle" fill="white" fontSize="22" fontWeight="800" letterSpacing="-0.5">Empowering Students</text>
+                <text x="200" y="370" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="14" fontWeight="500" letterSpacing="4" className="uppercase">Worldwide</text>
               </svg>
             </div>
 
@@ -217,44 +215,19 @@ export default function Auth() {
               </p>
 
               <div className="flex bg-slate-100 dark:bg-white/5 rounded-xl p-1.5 mb-8 border border-black/5 dark:border-white/5 relative">
-                {/* Sliding indicator background */}
-                <div 
-                  className={`absolute inset-y-1.5 w-[calc(50%-6px)] bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-black/5 dark:border-white/10 transition-transform duration-500 ease-out ${authMode === 'register' ? 'translate-x-[calc(50%+0.1px)]' : 'translate-x-0'}`}
-                ></div>
-
-                <button
-                  onClick={() => { setAuthMode("login"); setErrors({}); }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-300 relative z-10 ${authMode === "login" ? "text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-                >
-                  Log In
-                </button>
-                <button
-                  onClick={() => { setAuthMode("register"); setErrors({}); }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-300 relative z-10 ${authMode === "register" ? "text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-                >
-                  Register
-                </button>
+                <div className={`absolute inset-y-1.5 w-[calc(50%-6px)] bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-black/5 dark:border-white/10 transition-transform duration-500 ease-out ${authMode === 'register' ? 'translate-x-[calc(50%+0.1px)]' : 'translate-x-0'}`}></div>
+                <button onClick={() => { setAuthMode("login"); setErrors({}); }} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-300 relative z-10 ${authMode === "login" ? "text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}>Log In</button>
+                <button onClick={() => { setAuthMode("register"); setErrors({}); }} className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-300 relative z-10 ${authMode === "register" ? "text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}>Register</button>
               </div>
 
-              {/* Form Area Wrapper to prevent height jumping */}
               <div className="relative min-h-62.5">
                 
                 {/* Register Form */}
-                <form 
-                  onSubmit={handleSubmit} 
-                  className={`space-y-5 transition-all duration-500 absolute w-full ${authMode === 'register' ? 'opacity-100 translate-x-0 relative pointer-events-auto' : 'opacity-0 translate-x-8 absolute pointer-events-none'}`}
-                >
+                <form onSubmit={handleSubmit} className={`space-y-5 transition-all duration-500 absolute w-full ${authMode === 'register' ? 'opacity-100 translate-x-0 relative pointer-events-auto' : 'opacity-0 translate-x-8 absolute pointer-events-none'}`}>
                   <div>
                     <div className="relative group">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Full Name"
-                        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.name ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`}
-                      />
+                      <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.name ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`} />
                     </div>
                     {errors.name && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.name}</p>}
                   </div>
@@ -262,14 +235,7 @@ export default function Auth() {
                   <div>
                     <div className="relative group">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Email Address"
-                        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`}
-                      />
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email Address" className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`} />
                     </div>
                     {errors.email && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.email}</p>}
                   </div>
@@ -277,14 +243,7 @@ export default function Auth() {
                   <div>
                     <div className="relative group">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Password"
-                        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`}
-                      />
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`} />
                     </div>
                     {errors.password && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.password}</p>}
                   </div>
@@ -295,21 +254,11 @@ export default function Auth() {
                 </form>
 
                 {/* Login Form */}
-                <form 
-                  onSubmit={handleSubmit} 
-                  className={`space-y-5 transition-all duration-500 absolute w-full ${authMode === 'login' ? 'opacity-100 translate-x-0 relative pointer-events-auto' : 'opacity-0 -translate-x-8 absolute pointer-events-none'}`}
-                >
+                <form onSubmit={handleSubmit} className={`space-y-5 transition-all duration-500 absolute w-full ${authMode === 'login' ? 'opacity-100 translate-x-0 relative pointer-events-auto' : 'opacity-0 -translate-x-8 absolute pointer-events-none'}`}>
                   <div>
                     <div className="relative group">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Email Address"
-                        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`}
-                      />
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email Address" className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`} />
                     </div>
                     {errors.email && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.email}</p>}
                   </div>
@@ -317,19 +266,12 @@ export default function Auth() {
                   <div>
                     <div className="relative group">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Password"
-                        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`}
-                      />
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50 dark:bg-[#111] border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-slate-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-black/10 dark:border-white/10'}`} />
                     </div>
                     {errors.password && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.password}</p>}
                   </div>
 
-                  <button type="submit" className="w-full py-3.5 mt-2 rounded-xl font-bold text-white bg-linear-to-r from-indigo-600 via-violet-600 to-cyan-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-indigo-500/25 flex justify-center items-center gap-2">
+                  <button type="submit" className="w-full py-3.5 mt-2 rounded-xl font-bold text-black dark:text-white bg-linear-to-r from-indigo-600 via-violet-600 to-cyan-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-indigo-500/25 flex justify-center items-center gap-2">
                     Sign In <ArrowRight size={18} />
                   </button>
                 </form>
@@ -340,7 +282,7 @@ export default function Auth() {
         </div>
 
         {/* Success State */}
-        <div className={`fixed inset-0 z-9999 bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-500 ${showSuccess ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-500 ${showSuccess ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
           <div className={`w-72 h-72 rounded-full bg-linear-to-br from-indigo-600 via-violet-600 to-cyan-500 shadow-[0_0_80px_rgba(99,102,241,0.6)] flex flex-col items-center justify-center text-white border-4 border-white/10 text-center p-6 transition-all duration-700 transform-gpu ${showSuccess ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}>
             <GraduationCap size={64} className="mb-2" />
             <h2 className="text-xl font-bold tracking-tight">

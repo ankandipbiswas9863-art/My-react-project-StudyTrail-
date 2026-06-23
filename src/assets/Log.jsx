@@ -102,7 +102,7 @@ export default function Log() {
         setTimeout(() => {
           setShowSuccess(false);
           setFormData({ name: "", email: "", password: "" });
-          // Redirect the user to the StudyTrail Home page
+          // Redirect the user to the StudyTrail Signed page
           navigate("/Signed"); // Make sure this matches your Route path in App.jsx
         }, 3000); 
 
@@ -162,7 +162,7 @@ export default function Log() {
               <h1 className="text-2xl font-bold tracking-tight">StudyTrail</h1>
             </div>
 
-            {/* SVG Logo */}
+            {/*  Logo */}
             <div className={`flex justify-center items-center flex-1 relative z-10 my-8 transition-all duration-1000 delay-300 ease-out transform-gpu ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
               <svg viewBox="0 0 400 400" className="w-full max-w-70 drop-shadow-2xl hover:scale-105 transition-transform duration-700">
                 <circle cx="200" cy="180" r="120" fill="url(#glow)" opacity="0.8" />

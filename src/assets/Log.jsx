@@ -282,7 +282,7 @@ export default function Log() {
         </div>
 
         {/* Success State */}
-        <div className={`fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-500 ${showSuccess ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`fixed inset-0 z-9999 bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-500 ${showSuccess ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
           <div className={`w-72 h-72 rounded-full bg-linear-to-br from-indigo-600 via-violet-600 to-cyan-500 shadow-[0_0_80px_rgba(99,102,241,0.6)] flex flex-col items-center justify-center text-white border-4 border-white/10 text-center p-6 transition-all duration-700 transform-gpu ${showSuccess ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}>
             <GraduationCap size={64} className="mb-2" />
             <h2 className="text-xl font-bold tracking-tight">
